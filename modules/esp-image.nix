@@ -15,6 +15,10 @@
       initrd =
         "${config.system.build.initialRamdisk}/${config.system.boot.loader.initrdFile}";
 
+      dtCfg = config.hardware.deviceTree;
+      hasDTB = dtCfg.enable && dtCfg.name != null;
+      dtbPath = lib.optionalString hasDTB "${dtCfg.package}/${dtCfg.name}";
+
       kernelParams = "init=${config.system.build.toplevel}/init "
         + lib.concatStringsSep " " config.boot.kernelParams;
 
@@ -23,13 +27,15 @@
         default nixos-installer.conf
       '';
 
-      defaultEntry = pkgs.writeText "nixos-installer.conf" ''
+      defaultEntry = pkgs.writeText "nixos-installer.conf" (''
         title NixOS Installer
         sort-key nixos
         linux /kernel
         initrd /initrd
         options ${kernelParams}
-      '';
+      '' + lib.optionalString hasDTB ''
+        devicetree /dtb
+      '');
 
       espImage = pkgs.runCommand "esp-image.img"
         {
@@ -40,9 +46,10 @@
           kernelSize=$(stat -c %s ${kernel})
           initrdSize=$(stat -c %s ${initrd})
           bootloaderSize=$(stat -c %s ${systemdBootEfi})
+          dtbSize=${if hasDTB then "$(stat -c %s ${dtbPath})" else "0"}
 
           # 2 MiB headroom for FAT metadata and config files
-          totalSize=$(( kernelSize + initrdSize + bootloaderSize + 2 * 1024 * 1024 ))
+          totalSize=$(( kernelSize + initrdSize + bootloaderSize + dtbSize + 2 * 1024 * 1024 ))
           totalSizeMB=$(( (totalSize + 1048575) / 1048576 ))
 
           truncate -s "''${totalSizeMB}M" "$out"
@@ -64,6 +71,9 @@
           # Kernel and initrd
           mcopy -i "$out" ${kernel} ::kernel
           mcopy -i "$out" ${initrd} ::initrd
+
+          # Device tree
+          ${lib.optionalString hasDTB ''mcopy -i "$out" ${dtbPath} ::dtb''}
         '';
 
     in
