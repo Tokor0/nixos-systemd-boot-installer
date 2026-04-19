@@ -37,6 +37,7 @@
           };
 
           "/iso" = lib.mkImageMediaOverride {
+            fsType = "iso9660";
             device =
               if config.boot.initrd.systemd.enable
               then "/dev/disk/by-label/${config.isoImage.volumeID}"
