@@ -53,6 +53,16 @@
           description = "Compression algorithm for the squashfs nix store.";
         };
 
+        forceTextMode = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Whether to force text-mode console in systemd-boot by setting
+            <literal>console-mode 0</literal> in loader.conf. Useful for
+            serial or headless installs.
+          '';
+        };
+
         contents = lib.mkOption {
           default = [ ];
           description = "Additional files and directories to place on the ISO.";

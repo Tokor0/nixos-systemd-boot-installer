@@ -22,10 +22,12 @@
       kernelParams = "init=${config.system.build.toplevel}/init "
         + lib.concatStringsSep " " config.boot.kernelParams;
 
-      loaderConf = pkgs.writeText "loader.conf" ''
+      loaderConf = pkgs.writeText "loader.conf" (''
         timeout ${toString config.boot.loader.timeout}
         default nixos-installer.conf
-      '';
+      '' + lib.optionalString config.isoImage.forceTextMode ''
+        console-mode 0
+      '');
 
       defaultEntry = pkgs.writeText "nixos-installer.conf" (''
         title NixOS Installer
